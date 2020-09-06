@@ -14,7 +14,7 @@ In plans:
 3. Docs and conclusions
 
 ## Looks 
-![looks](10x10 PG.gif)
+![looks](https://github.com/pablo2811/jawbreaker-suboptimal-solver/blob/master/examples/10x10%20PG.gif)
 
 
 Rules: https://en.wikipedia.org/wiki/Jawbreaker_(Windows_Mobile_game)
