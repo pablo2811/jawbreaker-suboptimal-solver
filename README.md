@@ -13,6 +13,9 @@ In plans:
 2. Game itself
 3. Docs and conclusions
 
+## Looks 
+![looks](/examples/10x10 PG.gif)
+
 
 Rules: https://en.wikipedia.org/wiki/Jawbreaker_(Windows_Mobile_game)
 
