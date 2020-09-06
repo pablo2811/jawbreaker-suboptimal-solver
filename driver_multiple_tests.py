@@ -1,29 +1,20 @@
-import time,SearchTree
+import time, SearchTree,random
 
-def main():
-    T = int(input("Time of the test"))
+
+def test(what, additional=3, wtime=50,stesttime=25):
     t = time.time()
-    while time.time() - t <= T:
-        st = SearchTree.SearchTree(random=True)
-        st.randomWalk()
-        for i in range(1,4):
-            if time.time() - t > T:
-                break
-            for j in range(1,4):
-                if time.time() - t > T:
-                    break
-                st.stepreduction(i,j)
-        st.descendants(1)
-        st.descendants(2)
+    checker = lambda x: x - t <= wtime
+    while checker(time.time()):
+        h = random.randint(1,15)
+        w = random.randint(1,15)
+        st = SearchTree.SearchTree(object=False, hei=h, wid=w, maxtime=stesttime)
+        if what == "stredpg":
+            st.stepreduction(additional, predicted_gain=True)
+        elif what == "stred":
+            st.stepreduction(additional,predicted_gain=False)
+        elif what == "randomwalk":
+            st.randomWalk()
+        else:
+            st.descendants(additional)
 
 
-
-
-
-
-
-
-
-
-if __name__ == "__main__":
-    main()

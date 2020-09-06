@@ -1,10 +1,11 @@
 import os
 from PIL import Image
 
-def boardpaint(frames):
+
+def boardpaint(frames,scores):
     h = len(frames[0])
     w = len(frames[0][0])
-    pic = Image.new(mode="RGBA", size=(w*100, h*100))
+    pic = Image.new(mode="RGBA", size=(w * 100, h * 100))
     os.chdir("Tiles")
     soccer = Image.open("soccer.png")
     basket = Image.open("basket.png")
@@ -19,17 +20,7 @@ def boardpaint(frames):
     for board in frames:
         for i in range(h):
             for j in range(w):
-                pic.paste(x[board[i][j]],(100*j,100*i))
-        pic.save(f"{num}.png",format="PNG")
+                pic.paste(x[board[i][j]], (100 * j, 100 * i))
+        pic.save(f"{num}.png", format="PNG")
         num += 1
     os.chdir("..")
-
-
-
-
-
-
-
-
-
-

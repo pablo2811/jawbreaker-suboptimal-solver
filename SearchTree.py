@@ -3,18 +3,19 @@ import random
 import time
 import gif_creator
 import board_creator
+import os
 
 from State import State
 
 
 class SearchTree:
 
-    def __init__(self,starter=None,random=False,hei=None,wid=None,col=5):
-        if random:
-            self.play(hei,wid)
+    def __init__(self, starter=None, object=True, hei=None, wid=None, col=5, maxtime=20):
+        if not object:
+            self.play(hei, wid)
         else:
             assert starter is not None
-            self.root = State(starter,len(starter),len(starter[0]),c=col)
+            self.root = State(starter, len(starter), len(starter[0]), c=col)
         self.H = self.root.hei
         self.W = self.root.wid
         self.size = self.H * self.W
@@ -22,35 +23,37 @@ class SearchTree:
         self.howtowin = []
         self.winner = None
         self.logger = ""
+        self.maxtime = maxtime
 
+    def log(self, file):
+        os.chdir("logs")
+        with open(f"{file}.txt", "a+") as f:
+            print(self.logger, file=f)
+        os.chdir("..")
 
-    def log(self):
-        with open("smartlogger.txt","a+") as f:
-            print(self.logger,file=f)
-
-    def play(self,hei,wid):
+    def play(self, hei, wid):
         if hei is None or wid is None:
-            hei = random.randint(1,10)
-            wid = random.randint(1,10)
-        if hei*wid < 120:
-            board = [[random.randint(0,4) for _ in range(wid)]for __ in range(hei)]
-            s = State(board,hei,wid,5)
+            hei = random.randint(1, 15)
+            wid = random.randint(1, 15)
+        if hei * wid < 226:
+            board = [[random.randint(0, 4) for _ in range(wid)] for __ in range(hei)]
+            s = State(board, hei, wid, 5)
             self.root = s
         else:
-            raise Exception("Size of the board can't exceed 120.")
+            raise Exception("Size of the board can't exceed 225.")
 
-
-    def descendants(self,n):
+    def descendants(self, n):
         nc = [False]
+
         def util(current):
-            if time.time() - t > 10:
+            if time.time() - t > self.maxtime:
                 nc[0] = True
                 return
             current.generateChildren()
             if not current.end:
                 counter = 0
                 for s in current.childrenStates:
-                    if counter > n:
+                    if counter >= n:
                         break
                     util(s)
                     counter += 1
@@ -59,16 +62,17 @@ class SearchTree:
                     self.bestScore = current.value
                     self.howtowin = current.route
                     self.winner = current
+
         t = time.time()
         util(self.root)
         if not nc[0]:
-            self.logger = f"{self.size};DESC;{n};{self.bestScore};{round(time.time()-t,2)}"
-        else:
-            self.logger = f"{self.size};DESC;{n};-;-"
-        self.log()
+            self.logger = f"{self.size};{n};{self.bestScore};{round(time.time() - t, 2)}"
+            self.log(file="desclog")
 
-
-    def stepreduction(self, branches,proposed):
+    def stepreduction(self, branches, predicted_gain=True):
+        self.bestScore = 0
+        self.howtowin = 0
+        self.winner = None
         t = time.time()
         q = queue.Queue()
         q.put(self.root)
@@ -77,13 +81,17 @@ class SearchTree:
         lower = -1
         nc = False
         while not q.empty():
-            if time.time() - t > 10:
+            if time.time() - t > self.maxtime:
                 nc = True
-                return
+                break
             act = q.get()
             if act.depth == cdepth:
-                if act.value >= lower:
-                    act.generateChildren(proposed)
+                if predicted_gain:
+                    z = act.value + act.predicted_gain
+                else:
+                    z = act.value
+                if z >= lower:
+                    act.generateChildren(branches)
                     if act.end:
                         if act.value > self.bestScore:
                             self.winner = act
@@ -92,16 +100,24 @@ class SearchTree:
                     else:
                         for c in act.childrenStates:
                             q.put(c)
-                            values.append(c.value)
+                            if predicted_gain:
+                                z = c.value + c.predicted_gain
+                            else:
+                                z = c.value
+                            values.append(z)
             else:
                 values.sort()
                 cdepth += 1
                 if branches < len(values):
-                    lower = values[len(values)-branches-1]
+                    lower = values[-branches]
                 else:
                     lower = values[0]
-                if act.value >= lower:
-                    act.generateChildren(proposed)
+                if predicted_gain:
+                    z = act.value + act.predicted_gain
+                else:
+                    z = act.value
+                if z >= lower:
+                    act.generateChildren(branches)
                     if act.end:
                         if act.value > self.bestScore:
                             self.winner = act
@@ -110,14 +126,20 @@ class SearchTree:
                     else:
                         for c in act.childrenStates:
                             q.put(c)
-                            values.append(c.value)
+                            if predicted_gain:
+                                z = c.value + c.predicted_gain
+                            else:
+                                z = c.value
+                            values.append(z)
                 else:
                     values = []
-        if nc:
-            self.logger = f"{self.size};STRED;{branches} {proposed};-;-"
-        else:
-            self.logger = f"{self.size};STRED;{branches} {proposed};{self.bestScore};{round(time.time() - t, 2)}"
-        self.log()
+        if not nc:
+            if predicted_gain:
+                name = "stredpg"
+            else:
+                name = "stred"
+            self.logger = f"{self.size};{branches};{self.bestScore};{round(time.time() - t, 2)}"
+            self.log(file=f"{name}log")
 
     def randomWalk(self):
         t = time.time()
@@ -130,33 +152,29 @@ class SearchTree:
             current.generateChildren()
             if current.end:
                 break
-            z = random.randint(0,len(current.childrenStates)-1)
+            z = random.randint(0, len(current.childrenStates) - 1)
             current = current.childrenStates[z]
         self.winner = current
         self.bestScore = current.value
         self.howtowin = current.route
-        if nc:
-            self.logger = f"{self.size};RANDWALK;;-;-"
-        else:
-            self.logger = f"{self.size};RANDWALK;;{self.bestScore};{round(time.time() - t, 2)}"
-        self.log()
+        if not nc:
+            self.logger = f"{self.size};{self.bestScore};{round(time.time() - t, 2)}"
+            self.log("randomwalklog")
 
     def backtrack(self):
         route = []
         current = self.winner
+        scores = []
         while current != self.root:
+            scores.append(current.value)
             route.append(current.board)
             route.append(current.beforeFall)
             current = current.parent
         route.append(self.root.board)
-        return route[::-1]
+        return route[::-1],scores[::-1]
 
-    def solutionGif(self):
-        res = self.backtrack()
-        board_creator.boardpaint(res)
-        gif_creator.do()
-
-
-
-
-
+    def solutionGif(self, name):
+        if self.winner is not None:
+            res,scores = self.backtrack()
+            board_creator.boardpaint(res,scores)
+            gif_creator.do(name)
